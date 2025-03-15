@@ -1,0 +1,122 @@
+volumes:
+    mysql_data:
+        driver: local
+    phpmyadmin_data:
+        driver: local
+
+networks:
+    multitenant_backend:
+        driver: bridge
+
+services:
+    php-fpm:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: php-fpm-multitenant:latest
+        container_name: php-fpm-multitenant
+        working_dir: /var/www/html
+        restart: always
+        ports:
+            - "9003:9000"  # Exponemos el puerto PHP-FPM para depuración
+        volumes:
+            - .:/var/www/html
+        networks:
+            - multitenant_backend
+    nginx:
+        container_name: nginx-multitenant
+        image: nginx:latest
+#        image: nginx-multitenant:alpine
+#        build:
+#            context: ./
+#            dockerfile: nginx.Dockerfile
+        restart: always
+        ports:
+            - "8083:80"
+        volumes:
+            - .:/var/www/html
+            - ./.docker/nginx:/etc/nginx/conf.d/
+        depends_on:
+            - php-fpm
+        networks:
+            - multitenant_backend
+    localhost-multitenant:
+        container_name: mariadb-multitenant
+        image: mariadb:10.3
+        restart: always
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: 'multitenant'
+            MYSQL_USER: 'multitenant'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+            MYSQL_PASSWORD: 'multitenant'
+            MYSQL_ROOT_PASSWORD: '1234'
+            MYSQL_ROOT_HOST: "%"
+            MYSQL_HOST: "localhost-multitenant"
+        networks:
+            - multitenant_backend
+        volumes:
+            - mysql_data:/var/lib/mysql
+
+    phpmyadmin:
+        image: phpmyadmin
+        restart: always
+        ports:
+            - "8080:80"
+        environment:
+            PMA_ARBITRARY: 1
+            PMA_USER: "root"
+            PMA_PASSWORD: "1234"
+            PMA_HOST: localhost-multitenant
+
+        networks:
+            - multitenant_backend
+
+
+
+
+
+
+
+
+
+
+
+
+# networks:
+#     foodscan_backend:
+#         external: true
+
+# services:
+#     php-fpm:
+#         build:
+#             context: ./
+#             dockerfile: Dockerfile
+#         image: php-fpm-multitenant:latest
+#         container_name: php-fpm-multitenant
+#         working_dir: /var/www/html
+#         restart: always
+#         ports:
+#             - "9003:9000"  # Exponemos el puerto PHP-FPM para depuración
+#         volumes:
+#             - .:/var/www/html
+#         networks:
+#             - foodscan_backend
+#     nginx:
+#         container_name: nginx-multitenant
+#         image: nginx:latest
+# #        image: nginx-multitenant:alpine
+# #        build:
+# #            context: ./
+# #            dockerfile: nginx.Dockerfile
+#         restart: always
+#         ports:
+#             - "9000:9000"
+#         volumes:
+#             - .:/var/www/html
+#             - ./.docker/nginx:/etc/nginx/conf.d/
+#         depends_on:
+#             - php-fpm
+#         networks:
+#             - foodscan_backend

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,6 +21,10 @@ foreach (config('tenancy.central_domains') as $domain) {
         Route::get('/', function () {
             return view('welcome');
         });
+        Route::post("/tenant", [TenantController::class, 'store'])->name('tenant.store');
+        Route::delete("/tenant/{tenant}", [TenantController::class, 'destroy'])->name('tenant.destroy');
+        Route::get("/tenant/{tenant}/maintenance", [TenantController::class, 'maintenance'])->name('tenant.maintenance');
+        Route::get("/tenant/{tenant}/restore", [TenantController::class, 'restore'])->name('tenant.restore');
     });
 }
 
@@ -29,7 +34,9 @@ foreach (config('tenancy.central_domains') as $domain) {
 
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return view('dashboard', [
+        "tenants" => TenantController::index(),
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
